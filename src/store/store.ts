@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type ProgressMetric = {
   date: string;
@@ -8,26 +8,49 @@ export type ProgressMetric = {
   fluency: number;
 };
 
+export enum Visibility {
+  PRIVATE = "private",
+  PUBLIC = "public",
+  ANONYMOUS = "anonymous",
+}
+
+export type Metrics = {
+  confidence: number;
+  fluency: number;
+  tone: number;
+};
+export type RecordingsUpdateData = {
+  title: string;
+  reflection?: string;
+  metrics?: Metrics;
+};
+
+export type CommentType = {
+  general: string;
+  encouragement: string;
+  tips: string;
+};
+
+export type Feedback = {
+  id: string;
+  userId: string;
+  comment_type: CommentType;
+  createdAt: string;
+};
+
 export type Recording = {
   id: string;
+  user_id: user.id;
+  email: user.email;
+  username: user.user_metadata.username;
   prompt: string;
-  audioUrl: string;
-  isPublic: boolean;
-  date: string;
+  audio_url: string;
+  visibility: Visibility;
+  created_at: string;
   reflection?: string;
-  metrics?: {
-    tone: number;
-    confidence: number;
-    fluency: number;
-  };
-  feedback?: Array<{
-    id: string;
-    userId: string;
-    username: string;
-    content: string;
-    tips?: string;
-    createdAt: string;
-  }>;
+  title: string;
+  metrics?: Metrics;
+  feedback?: Feedback[];
 };
 
 export type User = {
@@ -43,34 +66,36 @@ type Toast = {
   id: string;
   title: string;
   description?: string;
-  type: 'default' | 'success' | 'error';
+  type: "default" | "success" | "error" | "info";
 };
 
 type State = {
   // Auth state
   isAuthenticated: boolean;
   user: User | null;
-  
+  token?: string;
+
   // App data
   recordings: Recording[];
   dailyPrompt: string;
   progressData: ProgressMetric[];
   activityData: { date: string; count: number }[];
-  
+
   // UI state
   toasts: Toast[];
   isRecording: boolean;
   currentAudioBlob: Blob | null;
-  
+
   // Actions
+  authenticateUser: (user: User, token: string) => void;
   login: (email: string, password: string) => void;
   logout: () => void;
-  addRecording: (recording: Omit<Recording, 'id'>) => void;
+  addRecording: (recording: Omit<Recording, "id">) => void;
   updateRecording: (id: string, data: Partial<Recording>) => void;
   deleteRecording: (id: string) => void;
   setIsRecording: (isRecording: boolean) => void;
   setCurrentAudioBlob: (blob: Blob | null) => void;
-  addToast: (toast: Omit<Toast, 'id'>) => void;
+  addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
 };
 
@@ -85,11 +110,12 @@ const mockPrompts = [
   "If you could live anywhere in the world, where would it be?",
   "What's a small everyday thing that brings you joy?",
   "What advice would you give to your younger self?",
-  "Describe a challenge you've overcome and how it changed you."
+  "Describe a challenge you've overcome and how it changed you.",
 ];
 
 // Get random prompt from the array
-const getRandomPrompt = () => mockPrompts[Math.floor(Math.random() * mockPrompts.length)];
+const getRandomPrompt = () =>
+  mockPrompts[Math.floor(Math.random() * mockPrompts.length)];
 
 export const useStore = create<State>()(
   persist(
@@ -97,26 +123,35 @@ export const useStore = create<State>()(
       // Auth state
       isAuthenticated: false,
       user: null,
-      
+
       // App data
       recordings: [],
       dailyPrompt: getRandomPrompt(),
       progressData: [],
       activityData: [],
-      
+
       // UI state
       toasts: [],
       isRecording: false,
       currentAudioBlob: null,
-      
+
       // Actions
+      authenticateUser: (user: User, token: string) => {
+        set({
+          isAuthenticated: true,
+          user,
+          token,
+        });
+        localStorage.setItem("jwt", token);
+      },
+
       login: (email, password) => {
         // Mock login functionality
         set({
           isAuthenticated: true,
           user: {
-            id: '1',
-            username: email.split('@')[0],
+            id: "1",
+            username: email.split("@")[0],
             email,
             joinedDate: new Date().toISOString(),
             streakCount: 0,
@@ -124,27 +159,27 @@ export const useStore = create<State>()(
           },
         });
       },
-      
+
       logout: () => {
         set({ isAuthenticated: false, user: null });
       },
-      
+
       addRecording: (recording) => {
         const newRecording = {
           ...recording,
           id: crypto.randomUUID(),
         };
-        
+
         set((state) => ({
           recordings: [...state.recordings, newRecording],
           dailyPrompt: getRandomPrompt(),
           activityData: [
             ...state.activityData,
-            { date: new Date().toISOString().split('T')[0], count: 1 }
-          ]
+            { date: new Date().toISOString().split("T")[0], count: 1 },
+          ],
         }));
       },
-      
+
       updateRecording: (id, data) => {
         set((state) => ({
           recordings: state.recordings.map((recording) =>
@@ -152,27 +187,29 @@ export const useStore = create<State>()(
           ),
         }));
       },
-      
+
       deleteRecording: (id) => {
         set((state) => ({
-          recordings: state.recordings.filter((recording) => recording.id !== id),
+          recordings: state.recordings.filter(
+            (recording) => recording.id !== id
+          ),
         }));
       },
-      
+
       setIsRecording: (isRecording) => {
         set({ isRecording });
       },
-      
+
       setCurrentAudioBlob: (blob) => {
         set({ currentAudioBlob: blob });
       },
-      
+
       addToast: (toast) => {
         const id = crypto.randomUUID();
         set((state) => ({
           toasts: [...state.toasts, { ...toast, id }],
         }));
-        
+
         // Auto remove toast after 5 seconds
         setTimeout(() => {
           set((state) => ({
@@ -180,7 +217,7 @@ export const useStore = create<State>()(
           }));
         }, 5000);
       },
-      
+
       removeToast: (id) => {
         set((state) => ({
           toasts: state.toasts.filter((toast) => toast.id !== id),
@@ -188,7 +225,7 @@ export const useStore = create<State>()(
       },
     }),
     {
-      name: 'voicebloom-storage',
+      name: "voicebloom-storage",
     }
   )
 );
