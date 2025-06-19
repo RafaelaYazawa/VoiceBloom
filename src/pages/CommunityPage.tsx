@@ -1,105 +1,169 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useStore } from '../store/store';
-import RecordingCard from '../components/community/RecordingCard';
-import FeedbackForm from '../components/community/FeedbackForm';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Recording } from "../store/store";
+import { getCommunityRecordings } from "../utils/api";
+import RecordingCard from "../components/community/RecordingCard";
+import FeedbackForm from "../components/community/FeedbackForm";
+import supabase from "../utils/supabaseClient";
+import { useStore } from "../store/store";
 
 const CommunityPage: React.FC = () => {
-  const { recordings } = useStore();
-  const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(null);
-  
-  // Get only public recordings
-  const publicRecordings = recordings.filter(r => r.isPublic);
-  
-  const handleOpenFeedback = (id: string) => {
-    setSelectedRecordingId(id);
+  const addToast = useStore((state) => state.addToast);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
+    null
+  );
+
+  // Load recordings on mount
+  useEffect(() => {
+    async function fetchRecordings() {
+      const res = await getCommunityRecordings();
+      setRecordings(res);
+    }
+    fetchRecordings();
+  }, []);
+
+  // Load feedbacks for selected recording
+  const loadFeedbacks = async (recording: Recording) => {
+    const { data: feedbacks, error } = await supabase
+      .from("feedbacks")
+      .select("*")
+      .eq("recording_id", recording.id);
+    if (!error) {
+      setSelectedRecording({ ...recording, feedback: feedbacks });
+    } else {
+      addToast({
+        title: "Failed to load feedback",
+        type: "error",
+      });
+    }
   };
-  
+
+  const handleOpenFeedback = (recording: Recording) => {
+    loadFeedbacks(recording);
+  };
+
   const handleCloseFeedback = () => {
-    setSelectedRecordingId(null);
+    setSelectedRecording(null);
   };
-  
+
+  // Called by FeedbackForm after successful submit to refresh feedback list
+  const handleFeedbackSubmit = async (
+    recording: Recording,
+    commentType: string,
+    comment: string
+  ) => {
+    if (!recording || !comment.trim()) {
+      addToast({
+        title: "Please enter feedback",
+        type: "error",
+      });
+      return;
+    }
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      addToast({
+        title: "User authentication error",
+        description: userError.message,
+        type: "error",
+      });
+      return;
+    }
+
+    const { error } = await supabase.from("feedbacks").insert({
+      recording_id: recording.id,
+      comment_type: commentType,
+      comment,
+      user_id: user?.id || null,
+    });
+
+    if (error) {
+      addToast({
+        title: "Failed to submit feedback",
+        description: error.message,
+        type: "error",
+      });
+    } else {
+      addToast({
+        title: "Feedback submitted!",
+        type: "success",
+      });
+    }
+    await loadFeedbacks(recording);
+  };
+
+  const publicRecordings = recordings.filter(
+    (r) => r.visibility === "public" || r.visibility === "anonymous"
+  );
+
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="max-w-4xl mx-auto py-6 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2">Community</h1>
-          <p className="text-muted-foreground">
-            Listen to recordings from other members and provide supportive feedback.
-          </p>
-        </div>
-        
-        {publicRecordings.length === 0 ? (
-          <div className="bg-white p-8 rounded-lg shadow-sm border text-center">
-            <p className="text-muted-foreground mb-4">
-              There are no public recordings yet. Be the first to share!
-            </p>
-            <a
-              href="/record"
-              className="btn-primary inline-flex"
-            >
-              Record and Share
-            </a>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {publicRecordings.map((recording) => (
-              <RecordingCard
-                key={recording.id}
-                recording={recording}
-                onOpenFeedback={handleOpenFeedback}
-              />
-            ))}
-          </div>
-        )}
-        
-        {selectedRecordingId && (
-          <div className="fixed inset-0 bg-foreground/30 flex items-center justify-center p-4 z-50">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="p-6">
-                <FeedbackForm
-                  recordingId={selectedRecordingId}
-                  onClose={handleCloseFeedback}
+        <h1 className="text-3xl font-semibold mb-4">Community</h1>
+        <p className="mb-8 text-muted-foreground">
+          Listen to recordings from other members and provide supportive
+          feedback.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {publicRecordings.map((recording) => {
+            const displayName =
+              recording.visibility === "anonymous"
+                ? "Anonymous"
+                : recording.username || recording.email || "Unknown User";
+
+            const isSelected = selectedRecording?.id === recording.id;
+
+            return (
+              <div key={recording.id} className="space-y-4">
+                <RecordingCard
+                  recording={recording}
+                  displayName={displayName}
+                  onOpenFeedback={() => handleOpenFeedback(recording)}
                 />
+
+                {isSelected && selectedRecording && (
+                  <div className="bg-white border rounded-lg p-4 shadow-md">
+                    <h3 className="text-lg font-semibold mb-3">Feedback</h3>
+
+                    {selectedRecording.feedback?.length ? (
+                      <ul className="space-y-2 max-h-40 overflow-y-auto mb-4 text-sm">
+                        {selectedRecording.feedback.map((fb, i) => (
+                          <li
+                            key={i}
+                            className="border rounded p-2 break-words"
+                          >
+                            <strong className="capitalize">
+                              {fb.comment_type}:
+                            </strong>{" "}
+                            {fb.comment}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mb-4 text-muted-foreground">
+                        Be the first to give feedback.
+                      </p>
+                    )}
+
+                    <FeedbackForm
+                      recording={selectedRecording}
+                      onClose={handleCloseFeedback}
+                      onSubmitFeedback={handleFeedbackSubmit}
+                    />
+                  </div>
+                )}
               </div>
-            </motion.div>
-          </div>
-        )}
-        
-        <div className="mt-8 bg-white p-6 rounded-lg shadow-sm border">
-          <h2 className="text-xl font-medium mb-4">Community Guidelines</h2>
-          
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
-              Be encouraging and supportive in your feedback.
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
-              Focus on positive aspects of the recording.
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
-              If offering suggestions, do so constructively and kindly.
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
-              Remember everyone is at a different stage in their journey.
-            </li>
-            <li className="flex items-start">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary mt-1.5 mr-2"></span>
-              Report any inappropriate content to moderators.
-            </li>
-          </ul>
+            );
+          })}
         </div>
       </motion.div>
     </div>
