@@ -1,10 +1,19 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Mic, Users, BookOpen, BarChart3, User } from "lucide-react";
-import { useStore } from "../../store/store";
+import { Profile } from "../../store/store";
+import { fetchingProfile } from "../../utils/api";
 
 const Sidebar: React.FC = () => {
-  const { user } = useStore();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const data = await fetchingProfile();
+      setProfile(data);
+    };
+    fetchProfile();
+  }, []);
 
   const links = [
     { to: "/record", label: "Practice", icon: <Mic className="h-5 w-5" /> },
@@ -26,20 +35,23 @@ const Sidebar: React.FC = () => {
       <div className="px-6 mb-8">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            {user?.username ? user.username.charAt(0).toUpperCase() : "?"}
+            {profile?.username
+              ? profile.username.charAt(0).toUpperCase()
+              : profile?.email
+              ? profile.email.charAt(0).toUpperCase()
+              : "?"}
           </div>
           <div>
-            <p className="font-medium">{user?.username}</p>
+            <p className="font-medium">{profile?.username}</p>
             <div className="flex items-center space-x-1">
               <BarChart3 className="h-3 w-3 text-secondary" />
               <span className="text-xs text-muted-foreground">
-                Streak: {user?.streakCount || 0} days
+                Streak: {profile?.streakCount || 0} days
               </span>
             </div>
           </div>
         </div>
       </div>
-
       <nav className="flex-1 px-2">
         <ul className="space-y-1">
           {links.map((link) => (
@@ -61,7 +73,6 @@ const Sidebar: React.FC = () => {
           ))}
         </ul>
       </nav>
-
       <div className="px-6 pt-6 mt-auto">
         <div className="rounded-md bg-accent/10 p-4">
           <h4 className="font-medium text-accent mb-1">Daily Tip</h4>

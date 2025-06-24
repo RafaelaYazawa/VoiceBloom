@@ -1,16 +1,19 @@
 import React from "react";
 import { format, parseISO, subDays, eachDayOfInterval } from "date-fns";
-import { useStore } from "../../store/store";
+import { Calendar } from "lucide-react";
+import { Recording } from "../../store/store";
 
-const ActivityCalendar: React.FC = () => {
-  const { recordings } = useStore();
+interface ActivityCalendarProps {
+  recordings: Recording[];
+}
 
+const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ recordings }) => {
   // Generate activity data for the last 60 days
   const today = new Date();
-  const sixtyDaysAgo = subDays(today, 59);
+  const thisMonth = subDays(today, 30);
 
   const daysArray = eachDayOfInterval({
-    start: sixtyDaysAgo,
+    start: thisMonth,
     end: today,
   });
 
@@ -18,7 +21,9 @@ const ActivityCalendar: React.FC = () => {
   const activityData = daysArray.map((day) => {
     const dateString = format(day, "yyyy-MM-dd");
     const count = recordings.filter(
-      (r) => typeof r.date === "string" && r.date.startsWith(dateString)
+      (r) =>
+        typeof r.date === "string" &&
+        format(new Date(r.date), "yyyy-MM-dd") === dateString
     ).length;
 
     return {
@@ -27,8 +32,10 @@ const ActivityCalendar: React.FC = () => {
     };
   });
 
+  const startDay = (parseISO(activityData[0].date).getDay() + 6) % 7;
+
   // Calculate the highest count for scaling
-  const maxCount = Math.max(...activityData.map((d) => d.count), 1);
+  const maxCount = Math.max(...activityData.map((d) => d.count), 4);
 
   // Generate month labels
   const months = Array.from(new Set(daysArray.map((d) => format(d, "MMM"))));
@@ -54,7 +61,10 @@ const ActivityCalendar: React.FC = () => {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm border">
-      <h3 className="text-lg font-medium mb-6">Activity Calendar</h3>
+      <div className="flex gap-3">
+        <h3 className="text-lg font-medium mb-6">Activity Calendar</h3>
+        <Calendar className="text-violet-500" />
+      </div>
 
       <div className="calendar-heatmap">
         <div className="flex mb-2">
@@ -80,16 +90,19 @@ const ActivityCalendar: React.FC = () => {
           ))}
 
           {/* Fill in empty spaces to align the grid */}
-          {Array.from({ length: parseISO(activityData[0].date).getDay() }).map(
-            (_, i) => (
-              <div key={`empty-${i}`} className="h-3"></div>
-            )
-          )}
+          {Array.from({ length: startDay }).map((_, i) => (
+            <div key={`empty-${i}`} className="h-3 w-3"></div>
+          ))}
 
           {/* Activity squares */}
           {activityData.map((day) => (
             <div
               key={day.date}
+              tabIndex={0}
+              role="button"
+              aria-label={`${day.count} recording${
+                day.count !== 1 ? "s" : ""
+              } on ${day.date}`}
               className={`day h-3 w-3 rounded-sm cursor-pointer transition-all ${getColorIntensity(
                 day.count
               )}`}

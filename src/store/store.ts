@@ -46,20 +46,21 @@ export type Recording = {
   prompt: string;
   audio_url: string;
   visibility: Visibility;
-  created_at: string;
+  date: string;
   reflection?: string;
   title: string;
   metrics?: Metrics;
   feedback?: Feedback[];
 };
 
-export type User = {
+export type Profile = {
   id: string;
   username: string;
   email: string;
   joinedDate: string;
   streakCount: number;
   lastActive: string;
+  location?: string;
 };
 
 type Toast = {
@@ -97,6 +98,7 @@ type State = {
   setCurrentAudioBlob: (blob: Blob | null) => void;
   addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
+  setRecordings: (recordings: Recording[]) => void;
 };
 
 // Mock data for demo purposes
@@ -162,6 +164,10 @@ export const useStore = create<State>()(
 
       logout: () => {
         set({ isAuthenticated: false, user: null });
+      },
+
+      setRecordings: (recordings) => {
+        set({ recordings });
       },
 
       addRecording: (recording) => {

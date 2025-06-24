@@ -5,6 +5,8 @@ import { Visibility, Recording } from "../store/store";
 import PrivateNoteForm from "../components/recording/PrivateNoteForm";
 import Tab from "../components/layout/Tab";
 import { getRecordings } from "../utils/api";
+import Button from "../components/ui/Button";
+import { X } from "lucide-react";
 
 const PrivateJournalPage: React.FC = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -12,12 +14,16 @@ const PrivateJournalPage: React.FC = () => {
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(
     null
   );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadRecordings = async () => {
+      setLoading(true);
       const recs = await getRecordings(activeTab);
       setRecordings(recs);
+      setLoading(false);
     };
+
     loadRecordings();
   }, [activeTab]);
 
@@ -31,8 +37,12 @@ const PrivateJournalPage: React.FC = () => {
     );
   };
 
+  const onClose = () => {
+    setSelectedRecordingId(null);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="max-w-6xl mx-auto py-6 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -49,13 +59,20 @@ const PrivateJournalPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
             <h2 className="text-xl font-medium mb-4">My Recordings</h2>
-            <Tab
-              recordings={recordings}
-              selectedRecordingId={selectedRecordingId}
-              setSelectedRecordingId={setSelectedRecordingId}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Tab
+                recordings={recordings}
+                selectedRecordingId={selectedRecordingId}
+                setSelectedRecordingId={setSelectedRecordingId}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                isLoading={loading}
+              />
+            </motion.div>
           </div>
 
           <div>
@@ -63,14 +80,18 @@ const PrivateJournalPage: React.FC = () => {
 
             {selectedRecording ? (
               <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <div className="mb-4 pb-4 border-b">
+                <div className="mb-4 pb-2 border-b flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     Recording from{" "}
-                    {format(
-                      parseISO(selectedRecording.created_at),
-                      "MMMM d, yyyy"
-                    )}
+                    {format(parseISO(selectedRecording.date), "MMMM d, yyyy")}
                   </p>
+                  <Button
+                    onClick={onClose}
+                    className="ml-auto p-2 hover:bg-gray-100 rounded"
+                    aria-label="Close feedback panel"
+                  >
+                    <X size={24} className="w-4 h-4" />
+                  </Button>
                 </div>
 
                 <PrivateNoteForm

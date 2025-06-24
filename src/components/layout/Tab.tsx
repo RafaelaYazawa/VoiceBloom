@@ -2,6 +2,7 @@ import React from "react";
 import { Visibility } from "../../store/store";
 import Button from "../ui/Button";
 import RecordingCard from "../community/RecordingCard";
+import { ScaleLoader } from "react-spinners";
 
 interface Recording {
   id: string;
@@ -15,6 +16,7 @@ interface TabProps {
   setSelectedRecordingId: (id: string | null) => void;
   activeTab: Visibility;
   setActiveTab: (v: Visibility) => void;
+  isLoading;
 }
 const Tab: React.FC<TabProps> = ({
   recordings,
@@ -22,6 +24,7 @@ const Tab: React.FC<TabProps> = ({
   setSelectedRecordingId,
   activeTab,
   setActiveTab,
+  isLoading,
 }) => {
   const renderLabel = (v: Visibility) => {
     switch (v) {
@@ -49,26 +52,37 @@ const Tab: React.FC<TabProps> = ({
           <Button
             key={v}
             onClick={() => setActiveTab(v)}
-            text={renderLabel(v)}
             className={`pb-2 text-lg ${
               activeTab === v
                 ? "border-b-4 border-purple-600 text-purple-700"
                 : "text-gray-500 hover:text-purple-500"
             }`}
-          />
+          >
+            {renderLabel(v)}
+          </Button>
         ))}
       </div>
-      {recordings.length === 0 ? (
+
+      {isLoading ? (
+        <>
+          <div className="flex items-center justify-center">
+            <ScaleLoader color="#7C3BeD" height={23} />
+          </div>
+          <div className="text-center">
+            <p>Loading your recordings</p>
+          </div>
+        </>
+      ) : recordings.length === 0 ? (
         <p className="text-center text-gray-500">
           No recordings found for this tab.
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto max-h-[90vh] px-4 pb-3">
           {recordings.map((recording) => (
             <div
               key={recording.id}
               onClick={() => setSelectedRecordingId(recording.id)}
-              className={`cursor-pointer transition-all ${
+              className={`cursor-pointer transition-all my-3 rounded-md p-1 ${
                 selectedRecordingId === recording.id
                   ? "ring-2 ring-primary ring-offset-2"
                   : ""

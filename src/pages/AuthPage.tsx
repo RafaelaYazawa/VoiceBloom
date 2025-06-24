@@ -5,13 +5,14 @@ import { motion } from "framer-motion";
 import { useStore } from "../store/store";
 import supabase from "../utils/supabaseClient";
 import { signUp } from "../utils/api";
+import Button from "../components/ui/Button";
 
 type Props = { onLoginSuccess: (user: any, token?: string) => void };
 
 const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addToast } = useStore();
+  const addToast = useStore((state) => state.addToast);
 
   const [isRegistering, setIsRegistering] = useState(
     new URLSearchParams(location.search).get("register") === "true"

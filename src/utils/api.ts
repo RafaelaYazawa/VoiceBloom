@@ -152,6 +152,7 @@ export const getRecordings = async (
       return {
         ...rec,
         audioUrl: signedUrlData.signedUrl,
+        date: rec.created_at,
       };
     })
   );
@@ -194,9 +195,6 @@ export const getCommunityRecordings = async (): Promise<Recording[]> => {
     .in("visibility", ["public", "anonymous"])
     .order("created_at", { ascending: false });
 
-  // console.log("getCommunityRecordings error:", error);
-  // console.log("getCommunityRecordings data:", data);
-
   if (error || !data) {
     console.log("data =", data);
     console.log("Failed to fetch recordings:", error);
@@ -207,6 +205,7 @@ export const getCommunityRecordings = async (): Promise<Recording[]> => {
     feedback: r.feedbacks || [],
     username: r.user_id?.username || "Anonymous",
     email: r.user_id?.email || "",
+    date: r.created_at || "",
   }));
 };
 
@@ -230,4 +229,48 @@ export const uploadAndSaveFeedbacks = async (feedback: {
   }
 
   return true;
+};
+
+export const deletingOwnComments = async (feedbackId: string) => {
+  const { error } = await supabase
+    .from("feedbacks")
+    .delete()
+    .eq("id", feedbackId);
+
+  if (error) {
+    console.error("Failed to delete feedback:", error.message);
+  } else {
+    console.log("Feedback deleted!");
+  }
+
+  return true;
+};
+
+export const fetchingProfile = async () => {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (!user || authError) {
+    console.error("Auth error:", authError?.message);
+    return;
+  }
+  const { data, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !data) {
+    console.error("Profile fetch error:", profileError?.message);
+    return null;
+  }
+
+  const profileData = {
+    ...data,
+    joinedDate: data.created_at,
+  };
+
+  return profileData;
 };

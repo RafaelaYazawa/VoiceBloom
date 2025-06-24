@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { format, formatDate, parseISO } from "date-fns";
 import { Recording } from "../../store/store";
 import supabase from "../../utils/supabaseClient";
+import Button from "../ui/Button";
 
 interface RecordingCardProps {
   recording: Recording;
@@ -30,8 +31,6 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
 
       if (user && user.id === recording.user_id) {
         setIsOwner(true);
-        console.log("isOwner:", isOwner);
-        console.log("recording.title:", recording.title);
       }
     };
 
@@ -56,7 +55,7 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
 
   useEffect(() => {
     if (!audioRef.current) return;
-    console.log("Recording props:", recording);
+    // console.log("Recording props:", recording);
 
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
@@ -97,28 +96,25 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
       transition={{ duration: 0.3 }}
       className="bg-white p-5 rounded-lg shadow-sm border"
     >
-      <div className="space-y-4 borderRadius">
+      <div className="space-y-4 borderRadius ">
         <div className="flex justify-between">
           <div className="bg-muted px-3 py-1 rounded-full text-xs text-muted-foreground flex items-center">
             <Calendar className="h-3 w-3 mr-1" />
-            {recording.created_at ? (
-              <span>
-                {format(parseISO(recording.created_at), "MMM d, yyyy")}
-              </span>
+            {recording.date ? (
+              <span>{format(parseISO(recording.date), "MMM d, yyyy")}</span>
             ) : (
               <span className="italic text-gray-400">No date</span>
             )}
           </div>
 
-          <button
-            onClick={handleLike}
-            className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
-              liked ? "text-error" : "text-muted-foreground"
-            }`}
-          >
-            <ThumbsUp className="h-3 w-3" />
-            <span>{liked ? "Liked" : "Like"}</span>
-          </button>
+          {recording.feedback && (
+            <div>
+              <div className="flex items-center text-muted-foreground text-xs space-x-1">
+                <MessageSquare className="h-4 w-4" />
+                <span>{recording.feedback.length ?? 0}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-muted p-3 rounded-md">
@@ -138,7 +134,7 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
             src={signedUrl ?? undefined}
             onEnded={() => setIsPlaying(false)}
           />
-          <button
+          <Button
             onClick={handlePlayPause}
             className="h-12 w-12 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors"
           >
@@ -147,7 +143,7 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
             ) : (
               <Play className="h-6 w-6" />
             )}
-          </button>
+          </Button>
         </div>
 
         {onOpenFeedback && (

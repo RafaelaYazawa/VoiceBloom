@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Mic, Menu, X, User, LogOut } from "lucide-react";
 import { useStore } from "../../store/store";
 import { motion, AnimatePresence } from "framer-motion";
+import Button from "../ui/Button";
 
 const Header: React.FC = () => {
   const { isAuthenticated, user, logout } = useStore();
@@ -20,7 +21,7 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Desktop Menu */}
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden lg:flex items-center space-x-8">
           {isAuthenticated ? (
             <>
               <Link
@@ -69,7 +70,7 @@ const Header: React.FC = () => {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-foreground p-2"
+          className="lg:hidden text-foreground p-2"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? (
@@ -87,7 +88,7 @@ const Header: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t"
+            className="lg:hidden border-t"
           >
             <nav className="flex flex-col py-4 px-4 bg-white">
               {isAuthenticated ? (

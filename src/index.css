@@ -182,3 +182,22 @@
 .page-exit-active {
   opacity: 0;
 }
+
+.truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  font-size: 17px;
+}
+
+.mySwiper {
+  width: 100%;
+  max-width: 900px; /* or whatever fits your layout */
+  overflow: hidden; /* important */
+}
+
+.swiper-button-prev,
+.swiper-button-next {
+  color: #9333ea;
+}
