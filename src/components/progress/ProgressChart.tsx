@@ -86,7 +86,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ recordings }) => {
                 <Line
                   type="monotone"
                   dataKey="tone"
-                  stroke="#8b5cf6" // primary
+                  stroke="#8b5cf6"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
@@ -94,7 +94,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ recordings }) => {
                 <Line
                   type="monotone"
                   dataKey="confidence"
-                  stroke="#3b82f6" // secondary
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
@@ -102,7 +102,7 @@ const ProgressChart: React.FC<ProgressChartProps> = ({ recordings }) => {
                 <Line
                   type="monotone"
                   dataKey="fluency"
-                  stroke="#f97316" // accent
+                  stroke="#f97316"
                   strokeWidth={2}
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}

@@ -8,7 +8,6 @@ interface ActivityCalendarProps {
 }
 
 const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ recordings }) => {
-  // Generate activity data for the last 60 days
   const today = new Date();
   const thisMonth = subDays(today, 30);
 
@@ -17,7 +16,6 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ recordings }) => {
     end: today,
   });
 
-  // Count recordings per day
   const activityData = daysArray.map((day) => {
     const dateString = format(day, "yyyy-MM-dd");
     const count = recordings.filter(
@@ -34,10 +32,8 @@ const ActivityCalendar: React.FC<ActivityCalendarProps> = ({ recordings }) => {
 
   const startDay = (parseISO(activityData[0].date).getDay() + 6) % 7;
 
-  // Calculate the highest count for scaling
   const maxCount = Math.max(...activityData.map((d) => d.count), 4);
 
-  // Generate month labels
   const months = Array.from(new Set(daysArray.map((d) => format(d, "MMM"))));
 
   const getColorIntensity = (count: number) => {

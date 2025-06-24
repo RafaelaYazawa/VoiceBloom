@@ -85,10 +85,8 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
     }
   };
 
-  // Demo authentication - in a real app, this would make API calls
   const toggleAuthMode = () => {
     setIsRegistering(!isRegistering);
-    // Update URL without full page reload
     const newSearch = isRegistering ? "" : "?register=true";
     navigate({ search: newSearch }, { replace: true });
   };
