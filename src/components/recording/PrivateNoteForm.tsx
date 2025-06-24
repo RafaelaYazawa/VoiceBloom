@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useStore } from "../../store/store";
 import { updateRecording as updateRecordingAPI } from "../../utils/api";
+import Button from "../ui/Button";
 
 type PrivateNoteFormProps = {
   recording: Recording | null;
@@ -11,7 +12,7 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
   recording,
   onRecordingUpdate,
 }) => {
-  const { recordings, updateRecording, addToast } = useStore();
+  const { updateRecording, addToast } = useStore();
   const [reflection, setReflection] = useState(recording?.reflection || "");
   const [title, setTitle] = useState(recording?.title || "");
   const [metrics, setMetrics] = useState({
@@ -170,9 +171,9 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
         </div>
       </div>
 
-      <button onClick={handleSave} className="btn-primary w-full">
+      <Button onClick={handleSave} className="btn-primary w-full">
         Save Reflection
-      </button>
+      </Button>
     </div>
   );
 };

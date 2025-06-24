@@ -4,9 +4,11 @@ import VoiceRecorder from "../components/recording/VoiceRecorder";
 import { useStore, Visibility } from "../store/store";
 import { uploadAndSaveRecording } from "../utils/api";
 import supabase from "../utils/supabaseClient";
+import { ScaleLoader } from "react-spinners";
 
 const RecordPage: React.FC = () => {
-  const { dailyPrompt, addToast } = useStore();
+  const { dailyPrompt } = useStore();
+  const addToast = useStore((state) => state.addToast);
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<
@@ -76,6 +78,10 @@ const RecordPage: React.FC = () => {
           <p className="text-muted-foreground">
             Record yourself speaking to the prompt below. Take your time and
             speak naturally.
+          </p>
+          <p className="text-sm text-purple-700 italic">
+            Heads up: Make sure you’ve selected your preferred sharing option
+            before saving!
           </p>
         </div>
 

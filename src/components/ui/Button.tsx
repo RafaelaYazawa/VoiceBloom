@@ -1,14 +1,14 @@
 interface ButtonProps {
-  text: string;
+  children: string;
   className: string;
   onClick: () => void;
 }
 
-const Button: React.FC<ButtonProps> = ({ className, onClick, text }) => {
+const Button: React.FC<ButtonProps> = ({ className, onClick, children }) => {
   return (
     <div>
       <button className={className} onClick={onClick}>
-        {text}
+        {children}
       </button>
     </div>
   );
