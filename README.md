@@ -15,7 +15,7 @@ VoiceBloom is a voice journaling app designed to help people express themselves 
 
 - Frontend: React, TypeScript, TailwindCSS, Swiper.js
 - Backend: Supabase (auth, database, storage)
-- Hosting: Vercel / Netlify (whichever you're using)
+- Hosting: Netlify
 
 ## 📽️ Demo Video
 
