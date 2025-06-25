@@ -101,8 +101,6 @@ const ProfilePage: React.FC = () => {
     currentStreak: calculatingCurrentStreak(recordings),
   };
 
-  console.log("profil ", profile);
-
   return (
     <div className="max-w-4xl mx-auto py-6">
       {loading ? (
@@ -127,8 +125,8 @@ const ProfilePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex gap-6 mb-8 items-start gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm border h-full  md:w-2/3">
+          <div className="flex flex-col gap-6 mb-8 md:flex-row items-start">
+            <div className="w-full bg-white p-4 sm:p-6 rounded-lg shadow-sm border h-full md:w-2/3">
               <div>
                 <div className="flex items-center mb-6">
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-medium">
@@ -183,7 +181,7 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="w-full md:col-span-2 w-96">
+            <div className="w-full md:w-1/3">
               <div className="p-6 bg-white rounded-lg shadow-sm border">
                 <div className="md:col-span-2 w-full">
                   <div className="flex gap-3">

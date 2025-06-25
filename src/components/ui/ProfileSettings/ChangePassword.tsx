@@ -56,7 +56,7 @@ const PasswordSettings: React.FC = () => {
                 Change Password
               </div>
               <div className="text-xs text-gray-500 italic">
-                {newPassword || "Not specified"}
+                {newPassword ? "Password updated" : "Password active"}
               </div>
             </div>
           </div>

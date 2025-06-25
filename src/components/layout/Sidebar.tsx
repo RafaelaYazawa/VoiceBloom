@@ -1,19 +1,75 @@
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { Visibility } from "../../store/store";
 import { Mic, Users, BookOpen, BarChart3, User } from "lucide-react";
 import { Profile } from "../../store/store";
-import { fetchingProfile } from "../../utils/api";
+import { getRecordings, fetchingProfile } from "../../utils/api";
+
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
 const Sidebar: React.FC = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [recordings, setRecordings] = useState<Recording[]>([]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndRecordings = async () => {
       const data = await fetchingProfile();
+
+      const privateRecs = await getRecordings(Visibility.PRIVATE);
+      const publicRecs = await getRecordings(Visibility.PUBLIC);
+      const anonymousRecs = await getRecordings(Visibility.ANONYMOUS);
+
+      const allRecs = [...privateRecs, ...publicRecs, ...anonymousRecs];
+
       setProfile(data);
+      setRecordings(allRecs);
+
+      setLoading(false);
     };
-    fetchProfile();
+    fetchProfileAndRecordings();
   }, []);
+  const calculatingCurrentStreak = (recordings: Recording[]) => {
+    if (recordings.length === 0) return 0;
+
+    const sortedDates = Array.from(
+      new Set(
+        recordings
+          .map((r) => format(parseISO(r.created_at), "yyyy-MM-dd"))
+          .sort((a, b) => (a < b ? 1 : -1))
+      )
+    );
+    let streak = 1;
+
+    for (let i = 1; i < sortedDates.length; i++) {
+      const currentDate = parseISO(sortedDates[i]);
+      const prevDate = parseISO(sortedDates[i - 1]);
+
+      const diff = differenceInCalendarDays(prevDate, currentDate);
+
+      if (diff === 1) {
+        streak++;
+      } else if (diff > 1) {
+        break;
+      }
+    }
+
+    const today = format(new Date(), "yyyy-MM-dd");
+    const lastRecordingDate = sortedDates[0];
+    const daysSinceLast = differenceInCalendarDays(
+      new Date(today),
+      new Date(lastRecordingDate)
+    );
+    if (daysSinceLast > 1) {
+      return 0;
+    }
+
+    return streak;
+  };
+
+  const stats = {
+    currentStreak: calculatingCurrentStreak(recordings),
+  };
 
   const links = [
     { to: "/record", label: "Practice", icon: <Mic className="h-5 w-5" /> },
@@ -46,7 +102,10 @@ const Sidebar: React.FC = () => {
             <div className="flex items-center space-x-1">
               <BarChart3 className="h-3 w-3 text-secondary" />
               <span className="text-xs text-muted-foreground">
-                Streak: {profile?.streakCount || 0} days
+                {typeof stats.currentStreak === "number" &&
+                stats.currentStreak > 0
+                  ? `${stats.currentStreak} days streak`
+                  : "No active streak"}
               </span>
             </div>
           </div>

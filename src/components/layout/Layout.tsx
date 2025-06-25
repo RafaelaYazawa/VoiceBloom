@@ -20,8 +20,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Sidebar />
           </div>
         )}
-        <main className={`flex-1 ${isAuthenticated ? "md:pl-0" : "md:pl-0"}`}>
-          <div className="container mx-auto px-4 py-6 max-w-6xl">
+        <main className="flex-1 overflow-hidden">
+          <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             {children}
           </div>
         </main>

@@ -75,13 +75,17 @@ const CommunityPage: React.FC = () => {
           grouped[fb.comment_type].push(fb);
         }
       });
+      const updatedRecording = { ...recording, feedback: feedbacks };
       setGroupedFeedbacks(grouped);
-      setSelectedRecording({ ...recording, feedback: feedbacks });
+      setSelectedRecording(updatedRecording);
+
+      return updatedRecording;
     } else {
       addToast({
         title: "Failed to load feedback",
         type: "error",
       });
+      return null;
     }
   };
 
@@ -138,7 +142,15 @@ const CommunityPage: React.FC = () => {
         type: "success",
       });
     }
-    await loadFeedbacks(recording);
+    const updatedRecording = await loadFeedbacks(recording);
+
+    if (updatedRecording) {
+      setRecordings((prevRecordings) =>
+        prevRecordings.map((rec) =>
+          rec.id === updatedRecording.id ? updatedRecording : rec
+        )
+      );
+    }
   };
 
   const publicRecordings = recordings.filter(
@@ -175,7 +187,7 @@ const CommunityPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
-            <div className="lg:w-2/3">
+            <div className="w-full min-w-0 lg:w-2/3 overflow-hidden">
               <Swiper
                 modules={[Navigation, Grid]}
                 spaceBetween={15}
@@ -184,10 +196,20 @@ const CommunityPage: React.FC = () => {
                 grid={{ rows: 2, fill: "row" }}
                 navigation
                 breakpoints={{
+                  0: {
+                    slidesPerView: 1,
+                    slidesPerGroup: 1,
+                    grid: { rows: 1 },
+                  },
+                  425: {
+                    slidesPerView: 1,
+                    slidesPerGroup: 1,
+                    grid: { rows: 1 },
+                  },
                   640: {
                     slidesPerView: 1,
                     slidesPerGroup: 1,
-                    grid: { rows: 2, fill: "row" },
+                    grid: { rows: 2 },
                   },
                   768: {
                     slidesPerView: 1,
@@ -228,6 +250,7 @@ const CommunityPage: React.FC = () => {
                         <RecordingCard
                           recording={recording}
                           displayName={displayName}
+                          feedbackCount={recording.feedback?.length || 0}
                         />
                       </div>
                     </SwiperSlide>
@@ -236,7 +259,7 @@ const CommunityPage: React.FC = () => {
               </Swiper>
             </div>
 
-            <div className="lg:w-1/3">
+            <div className="w-full min-w-0 lg:w-1/3 overflow-hidden">
               {selectedRecording ? (
                 <FeedbackPanel
                   currentUserId={currentUserId}

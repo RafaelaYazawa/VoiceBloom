@@ -9,16 +9,16 @@ import Button from "../ui/Button";
 interface RecordingCardProps {
   recording: Recording;
   displayName: string;
+  feedbackCount: number;
   onOpenFeedback?: () => void;
 }
 
 const RecordingCard: React.FC<RecordingCardProps> = ({
   recording,
   displayName,
-  onOpenFeedback,
+  feedbackCount,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [liked, setLiked] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -85,10 +85,6 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
     setIsPlaying(!isPlaying);
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -111,7 +107,7 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
             <div>
               <div className="flex items-center text-muted-foreground text-xs space-x-1">
                 <MessageSquare className="h-4 w-4" />
-                <span>{recording.feedback.length ?? 0}</span>
+                <span>{feedbackCount}</span>
               </div>
             </div>
           )}
@@ -145,20 +141,6 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
             )}
           </Button>
         </div>
-
-        {onOpenFeedback && (
-          <button
-            onClick={onOpenFeedback}
-            className="w-full btn-outline flex items-center justify-center"
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            <span>
-              {recording.feedback && recording.feedback.length > 0
-                ? `View Feedback (${recording.feedback.length})`
-                : "Leave Feedback"}
-            </span>
-          </button>
-        )}
       </div>
     </motion.div>
   );

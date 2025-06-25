@@ -19,7 +19,6 @@ const ChangeEmail: React.FC = () => {
         console.log("Failed to get current user", error?.message);
         return;
       }
-      console.log("user?.email", data.user?.email);
 
       setCurrentEmail(data.user?.email ?? null);
     };
@@ -27,22 +26,16 @@ const ChangeEmail: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const { data: subscription } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          setCurrentEmail(user?.email ?? null);
-        }
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        setCurrentEmail(user?.email ?? null);
       }
-    );
+    });
     return () => {
-      try {
-        subscription?.unsubscribe();
-      } catch (error) {
-        console.error("Error unsubscribing from auth listener", error);
-      }
+      data?.subscription.unsubscribe();
     };
   }, []);
 
@@ -76,9 +69,6 @@ const ChangeEmail: React.FC = () => {
     setNewEmail("");
     setIsEditingEmail(false);
   };
-
-  console.log("old email", currentEmail);
-  console.log("new email", newEmail);
 
   const handleCancel = () => {
     setNewEmail("");
