@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, replace } from "react-router-dom";
 import { Mic, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStore } from "../store/store";
 import supabase from "../utils/supabaseClient";
+import { useAuth } from "../store/AuthContext";
 import { signUp } from "../utils/api";
-import Button from "../components/ui/Button";
 
 type Props = { onLoginSuccess: (user: any, token?: string) => void };
 
@@ -13,6 +13,7 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const addToast = useStore((state) => state.addToast);
+  const { user, loading: authLoading } = useAuth();
 
   const [isRegistering, setIsRegistering] = useState(
     new URLSearchParams(location.search).get("register") === "true"
@@ -22,6 +23,16 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log(
+        "AuthPage: User already logged in or just signed in, navigating to /record"
+      );
+      navigate("/record", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     const isRegister =
@@ -32,6 +43,7 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFormSubmitting(true);
     console.log("form submitted");
 
     if (isRegistering && password !== confirmPassword) {
@@ -40,48 +52,66 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
         title: "Passwords do not match",
         type: "error",
       });
+      setFormSubmitting(false);
       return;
     }
 
     try {
       if (isRegistering) {
-        const data = await signUp(email, password);
-        if (data.user) {
-          console.log("Sign up successfully", data.user);
-          onLoginSuccess(data.user);
-
-          console.log("Full data response:", data);
-          console.log("User:", data.user);
-          console.log("Token:", data.session?.access_token);
-
-          addToast({
-            title: "Signed up successfuly",
-            description: "Please verify your email",
-            type: "success",
-          });
-          navigate("/signup");
-        }
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
+
+        if (signUpError)
+          if (data.user) {
+            onLoginSuccess(data.user);
+            addToast({
+              title: "Signed up successfuly",
+              description: "Please verify your email to log in.",
+              type: "success",
+            });
+            navigate("/auth");
+          } else {
+            addToast({
+              title: "Sign up successful, but no user data received.",
+              description: "Please check your email for a verification link.",
+              type: "info",
+            });
+            navigate("/auth");
+          }
+      } else {
+        const { data, error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+        if (signInError) throw signInError;
+
         if (data.session && data.user) {
-          const token = data.session.access_token;
-          console.log("Logged in successfully", data.user);
-          console.log("Logged in successfully", data.session);
-          onLoginSuccess(data.user, token);
-          navigate("/record");
-          console.log("Navigated!");
+          addToast({
+            title: "Logged in successfully",
+            type: "success",
+          });
+        } else {
+          addToast({
+            title: "Login failed",
+            description: "Authentication failed without specific error.",
+            type: "error",
+          });
         }
       }
     } catch (err: any) {
+      console.error("Authentication error:", err.message);
       setError(err.message || "Authentication failed");
       addToast({
-        title: err.message || "Authentication failed",
+        title: "Login failed",
+        description:
+          err.message || "Please double-check your information and try again.",
         type: "error",
       });
+    } finally {
+      setFormSubmitting(false);
     }
   };
 

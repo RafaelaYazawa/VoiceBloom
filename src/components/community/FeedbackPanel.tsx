@@ -4,7 +4,7 @@ import Button from "../ui/Button";
 import FeedbackForm from "./FeedbackForm";
 import type { Recording } from "../../store/store";
 import { useStore } from "../../store/store";
-import { deletingOwnComments } from "../../utils/api";
+import { deletingOwnComments, loadFeedbacks } from "../../utils/api";
 import { Trash2, X } from "lucide-react";
 
 interface FeedbackPanelProps {
@@ -18,7 +18,7 @@ interface FeedbackPanelProps {
     commentType: string,
     comment: string
   ) => Promise<void>;
-  refreshFeedbacks: (recording: Recording) => Promise<void>;
+  onFeedbackChange: (recording: Recording) => Promise<void>;
   onClose: () => void;
 }
 
@@ -29,7 +29,7 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
   setActiveTab,
   groupedFeedbacks,
   handleFeedbackSubmit,
-  refreshFeedbacks,
+  onFeedbackChange,
   onClose,
 }) => {
   const addToast = useStore((state) => state.addToast);
@@ -37,16 +37,24 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
   if (!selectedRecording) return null;
 
   const handleDeleteComment = async (feedbackId: string) => {
-    const success = await deletingOwnComments(feedbackId);
-    console.log("deleting", feedbackId);
+    try {
+      const success = await deletingOwnComments(feedbackId);
+      console.log("deleting", feedbackId);
 
-    if (success) {
-      addToast({
-        title: "Feedback deleted",
-        type: "success",
-      });
-      await refreshFeedbacks(selectedRecording);
-    } else {
+      if (success) {
+        addToast({
+          title: "Feedback deleted",
+          type: "success",
+        });
+        await onFeedbackChange(selectedRecording);
+      } else {
+        addToast({
+          title: "Failed to delete feedback",
+          description: "An error occurred during deletion.",
+          type: "error",
+        });
+      }
+    } catch (error: any) {
       addToast({
         title: "Failed to delete feedback",
         type: "error",
@@ -96,14 +104,15 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
           onClose={() => setActiveTab("general")}
           onSubmitFeedback={async (type, comment) => {
             await handleFeedbackSubmit(selectedRecording!, type, comment);
-            setActiveTab(type as any);
+            await onFeedbackChange(selectedRecording);
+            setActiveTab(type as "general" | "encouragement" | "tips");
           }}
         />
       ) : (
         <div className="space-y-4 max-h-60 overflow-y-auto mb-6 text-sm">
-          {groupedFeedbacks[activeTab]?.length ? (
+          {(groupedFeedbacks[activeTab] || []).length ? (
             <>
-              {groupedFeedbacks[activeTab].map((fb, i) => {
+              {(groupedFeedbacks[activeTab] || []).map((fb, i) => {
                 const name =
                   fb.profile?.username || fb.user?.email || "Anonymous";
                 const time = formatDistanceToNow(new Date(fb.created_at), {
@@ -111,7 +120,7 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
                 });
                 return (
                   <div
-                    key={i}
+                    key={fb.id || i}
                     className="bg-gray-50 p-3 rounded-md border shadow-sm flex gap-3"
                   >
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">

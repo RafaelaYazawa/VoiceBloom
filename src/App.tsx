@@ -1,4 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
 import RecordPage from "./pages/RecordPage";
@@ -7,19 +12,24 @@ import CommunityPage from "./pages/CommunityPage";
 import PrivateJournalPage from "./pages/PrivateJournalPage";
 import AuthPage from "./pages/AuthPage";
 import { Toaster } from "./components/ui/Toaster";
-import { useStore } from "./store/store";
+import { AuthProvider, useAuth } from "./store/AuthContext";
 
 function App() {
-  const { isAuthenticated, authenticateUser } = useStore();
-  const handleLoginSuccess = (user: any, accessToken?: string) => {
-    const token =
-      accessToken || user?.access_token || user.session?.access_token;
-    if (!token) {
-      console.warn("No token found", user);
-      return;
-    }
-    authenticateUser(user, token);
+  const { user, loading: authLoading } = useAuth();
+
+  const handleLoginSuccess = () => {
+    console.log(
+      "Login/Signup attempt completed. AuthContext will update session."
+    );
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-lg text-gray-600">
+        Loading application authentication...
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -28,9 +38,15 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route
             path="/auth"
-            element={<AuthPage onLoginSuccess={handleLoginSuccess} />}
+            element={
+              user ? (
+                <Navigate to="/record" replace />
+              ) : (
+                <AuthPage onLoginSuccess={handleLoginSuccess} />
+              )
+            }
           />
-          {isAuthenticated ? (
+          {user ? (
             <>
               <Route path="/record" element={<RecordPage />} />
               <Route path="/profile" element={<ProfilePage />} />

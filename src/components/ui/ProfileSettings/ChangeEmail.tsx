@@ -1,43 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useStore } from "../../../store/store";
 import supabase from "../../../utils/supabaseClient";
 import Button from "../Button";
 import { Mail } from "lucide-react";
+import { useAuth } from "../../../store/AuthContext";
 
 const ChangeEmail: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [newEmail, setNewEmail] = useState("");
   const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const addToast = useStore((state) => state.addToast);
-
-  useEffect(() => {
-    const fetchCurrentEmail = async () => {
-      const { data, error } = await supabase.auth.getUser();
-
-      if (!data.user || error) {
-        console.log("Failed to get current user", error?.message);
-        return;
-      }
-
-      setCurrentEmail(data.user?.email ?? null);
-    };
-    fetchCurrentEmail();
-  }, []);
-
-  useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setCurrentEmail(user?.email ?? null);
-      }
-    });
-    return () => {
-      data?.subscription.unsubscribe();
-    };
-  }, []);
+  const currentEmail = user?.email ?? null;
 
   const handleSaveEmail = async () => {
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail);
@@ -45,7 +19,13 @@ const ChangeEmail: React.FC = () => {
       addToast({ title: "Invalid email format", type: "error" });
       return;
     }
-
+    if (!user) {
+      addToast({
+        title: "You must be logged in to change email.",
+        type: "error",
+      });
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({
       email: newEmail,
@@ -68,12 +48,17 @@ const ChangeEmail: React.FC = () => {
     });
     setNewEmail("");
     setIsEditingEmail(false);
+    setLoading(false);
   };
 
   const handleCancel = () => {
     setNewEmail("");
     setIsEditingEmail(false);
   };
+
+  if (authLoading) {
+    return <div className="p-4 text-center">Loading email settings...</div>;
+  }
 
   return (
     <div className="w-full space-y-3 mb-3">
@@ -113,21 +98,21 @@ const ChangeEmail: React.FC = () => {
                 className="border px-3 py-2 rounded-md text-sm flex-grow focus:outline-none focus:ring-2 focus:ring-violet-300"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                disabled={loading}
+                disabled={loading || authLoading}
                 placeholder="name@gmail.com"
               />
               <div className="flex space-x-2">
                 <Button
                   className="px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-md hover:bg-gray-50"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={loading || authLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   className="px-3 py-2 text-sm text-white bg-violet-600 rounded-md hover:bg-violet-700"
                   onClick={handleSaveEmail}
-                  disabled={loading}
+                  disabled={loading || authLoading}
                 >
                   Save
                 </Button>

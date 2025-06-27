@@ -7,25 +7,45 @@ import Tab from "../components/layout/Tab";
 import { getRecordings } from "../utils/api";
 import Button from "../components/ui/Button";
 import { X } from "lucide-react";
+import { useAuth } from "../store/AuthContext";
 
 const PrivateJournalPage: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [activeTab, setActiveTab] = useState<Visibility>(Visibility.PRIVATE);
   const [selectedRecordingId, setSelectedRecordingId] = useState<string | null>(
     null
   );
-  const [loading, setLoading] = useState(true);
+  const [loadingRecordings, setLoadingRecordings] = useState(true);
 
   useEffect(() => {
     const loadRecordings = async () => {
-      setLoading(true);
-      const recs = await getRecordings(activeTab);
-      setRecordings(recs);
-      setLoading(false);
+      if (authLoading) {
+        setLoadingRecordings(true);
+        return;
+      }
+
+      if (!user) {
+        setRecordings([]);
+        setLoadingRecordings(false);
+        console.warn(
+          "PrivateJournalPage: No authenticated user. Cannot fetch recordings."
+        );
+        return;
+      }
+      try {
+        const recs = await getRecordings(user, activeTab);
+        setRecordings(recs);
+      } catch (error) {
+        console.error("PrivateJournalPage: Error loading recordings:", error);
+        setRecordings([]); // Clear recordings on error
+      } finally {
+        setLoadingRecordings(false); // End loading for this component's data fetch
+      }
     };
 
     loadRecordings();
-  }, [activeTab]);
+  }, [activeTab, user, authLoading, setRecordings]);
 
   const selectedRecording = selectedRecordingId
     ? recordings.find((r) => r.id === selectedRecordingId)
@@ -41,6 +61,9 @@ const PrivateJournalPage: React.FC = () => {
     setSelectedRecordingId(null);
   };
 
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
   return (
     <div className="max-w-6xl mx-auto py-6 px-4">
       <motion.div
@@ -70,7 +93,7 @@ const PrivateJournalPage: React.FC = () => {
                 setSelectedRecordingId={setSelectedRecordingId}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                isLoading={loading}
+                isLoading={loadingRecordings}
               />
             </motion.div>
           </div>

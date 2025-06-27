@@ -1,13 +1,26 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Mic, Menu, X, User, LogOut } from "lucide-react";
-import { useStore } from "../../store/store";
 import { motion, AnimatePresence } from "framer-motion";
-import Button from "../ui/Button";
+import { useAuth } from "../../store/AuthContext";
 
 const Header: React.FC = () => {
-  const { isAuthenticated, user, logout } = useStore();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const navigate = useNavigate();
+
+  const isAuthenticated = !!user;
+
+  const handleLogout = async () => {
+    if (signOut) {
+      await signOut();
+      setMobileMenuOpen(false);
+      navigate("/auth");
+    } else {
+      console.warn("signOut function not available in AuthContext.");
+    }
+  };
 
   return (
     <header className="bg-white border-b sticky top-0 z-40">
@@ -26,30 +39,30 @@ const Header: React.FC = () => {
             <>
               <Link
                 to="/record"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary transition-colors lg:hidden"
               >
                 Practice
               </Link>
               <Link
                 to="/community"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary transition-colors lg:hidden"
               >
                 Community
               </Link>
               <Link
                 to="/journal"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary transition-colors lg:hidden"
               >
                 Journal
               </Link>
               <Link
                 to="/profile"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-foreground hover:text-primary transition-colors lg:hidden"
               >
                 Profile
               </Link>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="text-foreground hover:text-primary transition-colors flex items-center"
               >
                 <LogOut className="h-4 w-4 mr-1" />
@@ -134,7 +147,7 @@ const Header: React.FC = () => {
                   </Link>
                   <button
                     onClick={() => {
-                      logout();
+                      handleLogout();
                       setMobileMenuOpen(false);
                     }}
                     className="flex items-center px-4 py-2 hover:bg-muted rounded-md text-left"

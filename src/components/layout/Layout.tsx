@@ -2,20 +2,20 @@ import React from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 import Sidebar from "./Sidebar";
-import { useStore } from "../../store/store";
+import { useAuth } from "../../store/AuthContext";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { isAuthenticated } = useStore();
+  const { user, loading: authLoading } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <div className="flex-1 flex">
-        {isAuthenticated && (
+        {user && (
           <div className="hidden lg:block w-64 border-r">
             <Sidebar />
           </div>

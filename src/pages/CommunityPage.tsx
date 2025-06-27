@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Recording } from "../store/store";
+import { Recording, Visibility } from "../store/store";
 import { getCommunityRecordings } from "../utils/api";
 import RecordingCard from "../components/community/RecordingCard";
 import supabase from "../utils/supabaseClient";
@@ -11,6 +11,7 @@ import FeedbackPanel from "../components/community/FeedbackPanel";
 import { ScaleLoader } from "react-spinners";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Grid } from "swiper/modules";
+import { useAuth } from "../store/AuthContext";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/grid";
@@ -22,7 +23,7 @@ const CommunityPage: React.FC = () => {
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
     null
   );
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
     "general" | "encouragement" | "tips" | "add"
@@ -42,47 +43,62 @@ const CommunityPage: React.FC = () => {
   useEffect(() => {
     const fetchRecordings = async () => {
       setLoading(true);
-      const res = await getCommunityRecordings();
-      setRecordings(res);
-      setLoading(false);
+      try {
+        const res = await getCommunityRecordings();
+        setRecordings(res);
+      } catch (error) {
+        console.error(
+          "CommunityPage: Error fetching community recordings:",
+          error
+        );
+        addToast({
+          title: "Error fetching community recordings",
+          description: "Please try again later.",
+          type: "error",
+        });
+        setRecordings([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchRecordings();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      console.log("current user");
-
-      setCurrentUserId(data.user?.id ?? null);
-    };
-    fetchUserId();
-  }, []);
+  }, [addToast]);
 
   const loadFeedbacks = async (recording: Recording) => {
+    if (!recording?.id) return null;
     const { data: feedbacks, error } = await supabase
       .from("feedbacks")
       .select("*, profile:profiles(email,username)")
       .eq("recording_id", recording.id);
-    if (!error) {
-      const grouped = {
+
+    if (!error && feedbacks) {
+      const grouped: { [key: string]: any[] } = {
         general: [],
         encouragement: [],
         tips: [],
       };
       feedbacks.forEach((fb) => {
-        if (grouped[fb.comment_type]) {
-          grouped[fb.comment_type].push(fb);
+        if (
+          fb.comment_type &&
+          grouped[fb.comment_type as keyof typeof grouped]
+        ) {
+          grouped[fb.comment_type as keyof typeof grouped].push(fb);
         }
       });
       const updatedRecording = { ...recording, feedback: feedbacks };
       setGroupedFeedbacks(grouped);
       setSelectedRecording(updatedRecording);
 
+      setRecordings((prevRecordings) =>
+        prevRecordings.map((rec) =>
+          rec.id === updatedRecording.id ? updatedRecording : rec
+        )
+      );
       return updatedRecording;
     } else {
       addToast({
         title: "Failed to load feedback",
+        description: error?.message || "An unexpected error occurred.",
         type: "error",
       });
       return null;
@@ -90,11 +106,19 @@ const CommunityPage: React.FC = () => {
   };
 
   const handleOpenFeedback = (recording: Recording) => {
+    handleCloseFeedback();
+    setSelectedRecording(recording);
     loadFeedbacks(recording);
   };
 
   const handleCloseFeedback = () => {
     setSelectedRecording(null);
+    setGroupedFeedbacks({
+      general: [],
+      encouragement: [],
+      tips: [],
+    });
+    setActiveTab("general");
   };
 
   const handleFeedbackSubmit = async (
@@ -109,47 +133,52 @@ const CommunityPage: React.FC = () => {
       });
       return;
     }
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    if (authLoading || !user) {
+      console.log("user???", user);
 
-    if (userError) {
       addToast({
-        title: "User authentication error",
-        description: userError.message,
+        title: "Authentication required",
+        description: "Please log in to submit feedback.",
         type: "error",
       });
       return;
     }
 
-    const { error } = await supabase.from("feedbacks").insert({
-      recording_id: recording.id,
-      comment_type: commentType,
-      comment,
-      user_id: user?.id || null,
-    });
+    try {
+      const { error } = await supabase.from("feedbacks").insert({
+        recording_id: recording.id,
+        comment_type: commentType,
+        comment,
+        user_id: user.id,
+      });
+      if (error) {
+        addToast({
+          title: "Failed to submit feedback",
+          description: error.message,
+          type: "error",
+        });
+      } else {
+        addToast({
+          title: "Feedback submitted!",
+          type: "success",
+        });
+      }
+      const updatedRecording = await loadFeedbacks(recording);
 
-    if (error) {
+      if (updatedRecording) {
+        setRecordings((prevRecordings) =>
+          prevRecordings.map((rec) =>
+            rec.id === updatedRecording.id ? updatedRecording : rec
+          )
+        );
+      }
+    } catch (error: any) {
+      console.error("Failed to submit feedback:", error.message);
       addToast({
         title: "Failed to submit feedback",
-        description: error.message,
+        description: error.message || "An unexpected error occurred.",
         type: "error",
       });
-    } else {
-      addToast({
-        title: "Feedback submitted!",
-        type: "success",
-      });
-    }
-    const updatedRecording = await loadFeedbacks(recording);
-
-    if (updatedRecording) {
-      setRecordings((prevRecordings) =>
-        prevRecordings.map((rec) =>
-          rec.id === updatedRecording.id ? updatedRecording : rec
-        )
-      );
     }
   };
 
@@ -230,10 +259,9 @@ const CommunityPage: React.FC = () => {
                   const isSelected = selectedRecording?.id === recording.id;
 
                   const displayName =
-                    recording.visibility === "anonymous" ||
-                    recording.username === "Anonymous"
+                    recording.visibility === Visibility.ANONYMOUS
                       ? "Anonymous"
-                      : recording.username && recording.username !== "Anonymous"
+                      : recording.username
                       ? recording.username
                       : recording.email || "Unknown User";
 
@@ -262,13 +290,13 @@ const CommunityPage: React.FC = () => {
             <div className="w-full min-w-0 lg:w-1/3 overflow-hidden">
               {selectedRecording ? (
                 <FeedbackPanel
-                  currentUserId={currentUserId}
+                  currentUserId={user ? user.id : null}
                   selectedRecording={selectedRecording}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   groupedFeedbacks={groupedFeedbacks}
                   handleFeedbackSubmit={handleFeedbackSubmit}
-                  refreshFeedbacks={loadFeedbacks}
+                  onFeedbackChange={loadFeedbacks}
                   onClose={handleCloseFeedback}
                 />
               ) : (
