@@ -55,6 +55,18 @@ const HomePage: React.FC = () => {
   return (
     <div className="space-y-16 py-8">
       {/* Hero Section */}
+      <a
+        href="https://bolt.new/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-20 right-4 sm:top-10 sm:right-6 md:top-20 md:right-10 lg:top-20 lg:right-20 "
+      >
+        <img
+          src="../public/BoltBadge/Bolt.png"
+          alt="Powered by Bolt"
+          className="size-20 sm:size-14 md:size-20 lg:size-24"
+        />
+      </a>
       <section className="text-center space-y-6">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
