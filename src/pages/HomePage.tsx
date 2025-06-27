@@ -62,11 +62,11 @@ const HomePage: React.FC = () => {
         className="absolute top-20 right-4 sm:top-10 sm:right-6 md:top-20 md:right-10 lg:top-20 lg:right-20 "
       >
         <img
-          src="../public/BoltBadge/Bolt.png"
+          src="src/public/BoltBadge/Bolt.png"
           alt="Powered by Bolt"
           className="size-20 sm:size-14 md:size-20 lg:size-24"
         />
-      </a>
+      </a>{" "}
       <section className="text-center space-y-6">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
@@ -103,7 +103,6 @@ const HomePage: React.FC = () => {
           </Link>
         </motion.div>
       </section>
-
       {/* How It Works */}
       <section>
         <div className="text-center mb-12">
@@ -149,7 +148,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
-
       {/* Features */}
       <section className="bg-muted py-16 -mx-4 px-4 rounded-lg">
         <div className="max-w-6xl mx-auto">
@@ -182,7 +180,6 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
-
       {/* Testimonials */}
       <section>
         <div className="text-center mb-12">
@@ -216,7 +213,6 @@ const HomePage: React.FC = () => {
           ))}
         </div>
       </section>
-
       {/* CTA */}
       <section className="bg-primary text-white p-10 rounded-xl text-center space-y-6">
         <h2 className="text-3xl font-semibold">Ready to Find Your Voice?</h2>
