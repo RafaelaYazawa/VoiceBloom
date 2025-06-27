@@ -3,6 +3,7 @@ import { useStore } from "../../../store/store";
 import supabase from "../../../utils/supabaseClient";
 import Button from "../Button";
 import { User } from "lucide-react";
+import { useAuth } from "../../../store/AuthContext";
 
 interface UsernameSettingProps {
   initialUsername: string | null;
@@ -17,6 +18,7 @@ const ProfileSettings: React.FC<UsernameSettingProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const addToast = useStore((state) => state.addToast);
+  const { user } = useAuth();
 
   useEffect(() => {
     setUsername(initialUsername ?? "");
@@ -33,7 +35,17 @@ const ProfileSettings: React.FC<UsernameSettingProps> = ({
       return;
     }
     setLoading(true);
-    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const userId = user?.id;
+
+    if (!userId) {
+      addToast({
+        title: "Authentication Error",
+        description: "User not logged in. Please log in again.",
+        type: "error",
+      });
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from("profiles")
       .update({ username })

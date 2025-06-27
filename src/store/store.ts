@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import supabase from "../utils/supabaseClient";
 
 export type ProgressMetric = {
   date: string;
@@ -25,32 +26,34 @@ export type RecordingsUpdateData = {
   metrics?: Metrics;
 };
 
-export type CommentType = {
-  general: string;
-  encouragement: string;
-  tips: string;
-};
+export type CommentTypeString = "general" | "encouragement" | "tips";
 
 export type Feedback = {
   id: string;
-  userId: string;
-  comment_type: CommentType;
-  createdAt: string;
+  user_id: string;
+  comment_type: CommentTypeString;
+  comment: string;
+  created_at: string;
+  profile?: {
+    email: string;
+    username: string;
+  } | null;
 };
 
 export type Recording = {
   id: string;
-  user_id: user.id;
-  email: user.email;
-  username: user.user_metadata.username;
+  user_id: string;
+  email?: string;
+  username?: string;
   prompt: string;
   audio_url: string;
   visibility: Visibility;
-  date: string;
+  created_at: string;
   reflection?: string;
   title: string;
   metrics?: Metrics;
   feedback?: Feedback[];
+  audioUrl?: string | null;
 };
 
 export type Profile = {
@@ -60,7 +63,6 @@ export type Profile = {
   joinedDate: string;
   streakCount: number;
   lastActive: string;
-  location?: string;
 };
 
 type Toast = {
@@ -71,14 +73,10 @@ type Toast = {
 };
 
 type State = {
-  // Auth state
-  isAuthenticated: boolean;
-  user: User | null;
-  token?: string;
-
   // App data
   recordings: Recording[];
   dailyPrompt: string;
+  lastPromptDate: string;
   progressData: ProgressMetric[];
   activityData: { date: string; count: number }[];
 
@@ -88,10 +86,6 @@ type State = {
   currentAudioBlob: Blob | null;
 
   // Actions
-  authenticateUser: (user: User, token: string) => void;
-  login: (email: string, password: string) => void;
-  logout: () => void;
-  addRecording: (recording: Omit<Recording, "id">) => void;
   updateRecording: (id: string, data: Partial<Recording>) => void;
   deleteRecording: (id: string) => void;
   setIsRecording: (isRecording: boolean) => void;
@@ -99,6 +93,8 @@ type State = {
   addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
   setRecordings: (recordings: Recording[]) => void;
+  setDailyPrompt: (prompt: string, date: string) => void;
+  refreshDailyPrompt: () => void;
 };
 
 // Mock data for demo purposes
@@ -119,16 +115,15 @@ const mockPrompts = [
 const getRandomPrompt = () =>
   mockPrompts[Math.floor(Math.random() * mockPrompts.length)];
 
+const getTodayDate = () => new Date().toISOString().slice(0, 10);
+
 export const useStore = create<State>()(
   persist(
     (set) => ({
-      // Auth state
-      isAuthenticated: false,
-      user: null,
-
       // App data
       recordings: [],
       dailyPrompt: getRandomPrompt(),
+      lastPromptDate: getTodayDate(),
       progressData: [],
       activityData: [],
 
@@ -138,52 +133,8 @@ export const useStore = create<State>()(
       currentAudioBlob: null,
 
       // Actions
-      authenticateUser: (user: User, token: string) => {
-        set({
-          isAuthenticated: true,
-          user,
-          token,
-        });
-        localStorage.setItem("jwt", token);
-      },
-
-      login: (email, password) => {
-        // Mock login functionality
-        set({
-          isAuthenticated: true,
-          user: {
-            id: "1",
-            username: email.split("@")[0],
-            email,
-            joinedDate: new Date().toISOString(),
-            streakCount: 0,
-            lastActive: new Date().toISOString(),
-          },
-        });
-      },
-
-      logout: () => {
-        set({ isAuthenticated: false, user: null });
-      },
-
       setRecordings: (recordings) => {
         set({ recordings });
-      },
-
-      addRecording: (recording) => {
-        const newRecording = {
-          ...recording,
-          id: crypto.randomUUID(),
-        };
-
-        set((state) => ({
-          recordings: [...state.recordings, newRecording],
-          dailyPrompt: getRandomPrompt(),
-          activityData: [
-            ...state.activityData,
-            { date: new Date().toISOString().split("T")[0], count: 1 },
-          ],
-        }));
       },
 
       updateRecording: (id, data) => {
@@ -228,6 +179,23 @@ export const useStore = create<State>()(
         set((state) => ({
           toasts: state.toasts.filter((toast) => toast.id !== id),
         }));
+      },
+
+      setDailyPrompt: (prompt, date) => {
+        set({ dailyPrompt: prompt, lastPromptDate: date });
+      },
+
+      refreshDailyPrompt: () => {
+        const today = getTodayDate();
+        set((state) => {
+          if (state.lastPromptDate !== today) {
+            return {
+              dailyPrompt: getRandomPrompt(),
+              lastPromptDate: today,
+            };
+          }
+          return {};
+        });
       },
     }),
     {

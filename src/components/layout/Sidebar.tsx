@@ -1,34 +1,53 @@
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Visibility } from "../../store/store";
 import { Mic, Users, BookOpen, BarChart3, User } from "lucide-react";
 import { Profile } from "../../store/store";
+import { useAuth } from "../../store/AuthContext";
 import { getRecordings, fetchingProfile } from "../../utils/api";
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
 const Sidebar: React.FC = () => {
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [userRecordings, setUserRecordings] = useState<Recording[]>([]);
+
+  if (!user && !authLoading) return null;
 
   useEffect(() => {
-    const fetchProfileAndRecordings = async () => {
-      const data = await fetchingProfile();
+    const fetchUserData = async () => {
+      setDataLoading(true);
+      if (authLoading) {
+        return;
+      }
 
-      const privateRecs = await getRecordings(Visibility.PRIVATE);
-      const publicRecs = await getRecordings(Visibility.PUBLIC);
-      const anonymousRecs = await getRecordings(Visibility.ANONYMOUS);
+      try {
+        if (user && user.id) {
+          const fetchedProfile = await fetchingProfile(user);
+          setProfile(fetchedProfile);
 
-      const allRecs = [...privateRecs, ...publicRecs, ...anonymousRecs];
-
-      setProfile(data);
-      setRecordings(allRecs);
-
-      setLoading(false);
+          const allOwnedRecs = await getRecordings(user);
+          setUserRecordings(allOwnedRecs);
+        } else {
+          console.log(
+            "No authenticated user. Sidebar will show default content."
+          );
+          setProfile(null);
+          setUserRecordings([]);
+        }
+      } catch (error) {
+        console.error("Error fetching sidebar data:", error);
+        setProfile(null);
+        setUserRecordings([]);
+      } finally {
+        setDataLoading(false);
+      }
     };
-    fetchProfileAndRecordings();
-  }, []);
+
+    fetchUserData();
+  }, [user, authLoading]);
+
   const calculatingCurrentStreak = (recordings: Recording[]) => {
     if (recordings.length === 0) return 0;
 
@@ -39,8 +58,22 @@ const Sidebar: React.FC = () => {
           .sort((a, b) => (a < b ? 1 : -1))
       )
     );
-    let streak = 1;
+    let streak = 0;
+    const today = format(new Date(), "yyyy-MM-dd");
+    const lastRecordingDate = sortedDates[0];
 
+    const daysSinceLast = differenceInCalendarDays(
+      parseISO(today),
+      parseISO(lastRecordingDate)
+    );
+
+    if (daysSinceLast === 0) {
+      streak = 1;
+    } else if (daysSinceLast === 1) {
+      streak = 1;
+    } else {
+      return 0;
+    }
     for (let i = 1; i < sortedDates.length; i++) {
       const currentDate = parseISO(sortedDates[i]);
       const prevDate = parseISO(sortedDates[i - 1]);
@@ -53,22 +86,11 @@ const Sidebar: React.FC = () => {
         break;
       }
     }
-
-    const today = format(new Date(), "yyyy-MM-dd");
-    const lastRecordingDate = sortedDates[0];
-    const daysSinceLast = differenceInCalendarDays(
-      new Date(today),
-      new Date(lastRecordingDate)
-    );
-    if (daysSinceLast > 1) {
-      return 0;
-    }
-
     return streak;
   };
 
   const stats = {
-    currentStreak: calculatingCurrentStreak(recordings),
+    currentStreak: calculatingCurrentStreak(userRecordings),
   };
 
   const links = [
@@ -98,7 +120,11 @@ const Sidebar: React.FC = () => {
               : "?"}
           </div>
           <div>
-            <p className="font-medium">{profile?.username}</p>
+            <p className="font-medium">
+              {dataLoading
+                ? "Loading..."
+                : profile?.username || profile?.email || "User"}
+            </p>
             <div className="flex items-center space-x-1">
               <BarChart3 className="h-3 w-3 text-secondary" />
               <span className="text-xs text-muted-foreground">

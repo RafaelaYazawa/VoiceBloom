@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useStore } from "../../store/store";
 import { updateRecording as updateRecordingAPI } from "../../utils/api";
 import Button from "../ui/Button";
+import { useAuth } from "../../store/AuthContext";
 
 type PrivateNoteFormProps = {
   recording: Recording | null;
@@ -12,7 +13,8 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
   recording,
   onRecordingUpdate,
 }) => {
-  const { updateRecording, addToast } = useStore();
+  const { user, loading: authLoading } = useAuth();
+  const { addToast } = useStore();
   const [reflection, setReflection] = useState(recording?.reflection || "");
   const [title, setTitle] = useState(recording?.title || "");
   const [metrics, setMetrics] = useState({
@@ -20,6 +22,7 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
     confidence: recording?.metrics?.confidence || 5,
     fluency: recording?.metrics?.fluency || 5,
   });
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setReflection(recording?.reflection || "");
@@ -32,6 +35,24 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
   }, [recording]);
 
   const handleSave = async () => {
+    if (!recording) {
+      addToast({
+        title: "No recording selected",
+        description: "Please select a recording to save notes.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (authLoading || !user) {
+      addToast({
+        title: "Authentication Error",
+        description: "Please wait for authentication or log in again.",
+        type: "error",
+      });
+      return;
+    }
+
     const hasChanged =
       recording.title !== title ||
       recording?.reflection !== reflection ||
@@ -44,31 +65,45 @@ const PrivateNoteForm: React.FC<PrivateNoteFormProps> = ({
       });
       return;
     }
+    setIsSaving(true);
+    try {
+      const success = await updateRecordingAPI(
+        recording.id,
+        {
+          title,
+          reflection,
+          metrics,
+        },
+        user.id
+      );
 
-    const success = await updateRecordingAPI(recording.id, {
-      title,
-      reflection,
-      metrics,
-    });
-
-    if (success) {
-      updateRecording(recording.id, { title, reflection, metrics });
-      onRecordingUpdate({
-        ...recording,
-        title,
-        reflection,
-        metrics,
-      });
+      if (success) {
+        onRecordingUpdate({
+          ...recording,
+          title,
+          reflection,
+          metrics,
+        });
+        addToast({
+          title: "Recording Updated",
+          type: "success",
+        });
+      } else {
+        addToast({
+          title: "Your recording could not be updated.",
+          description: "Check your internet connection and try again.",
+          type: "error",
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to save recording:", error);
       addToast({
-        title: "Recording Updated",
-        type: "success",
-      });
-    } else {
-      addToast({
-        title: "Your recording could not be updated.",
-        description: "Check your internet connection and try again.",
+        title: "Error Saving Recording",
+        description: error.message || "An unexpected error occurred.",
         type: "error",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 

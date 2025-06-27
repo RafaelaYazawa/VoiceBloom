@@ -3,6 +3,7 @@ import Button from "../Button";
 import { useStore } from "../../../store/store";
 import supabase from "../../../utils/supabaseClient";
 import { MapPin } from "lucide-react";
+import { useAuth } from "../../../store/AuthContext";
 
 interface LocationSettings {
   initialLocation?: string;
@@ -17,10 +18,20 @@ const LocationSettings: React.FC<LocationSettings> = ({
   const [location, setLocation] = useState(initialLocation || "");
   const [loading, setLoading] = useState(false);
   const addToast = useStore((state) => state.addToast);
+  const { user } = useAuth();
 
   const handleSaveLocation = async () => {
     setLoading(true);
-    const userId = (await supabase.auth.getUser()).data.user?.id;
+    const userId = user?.id;
+    if (!userId) {
+      addToast({
+        title: "Authentication Error",
+        description: "User not logged in. Please log in again.",
+        type: "error",
+      });
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase
       .from("profiles")
       .update({ location })
@@ -40,7 +51,6 @@ const LocationSettings: React.FC<LocationSettings> = ({
       setEditingLocation(false);
     }
   };
-
   return (
     <div className="w-full space-y-3 mb-3">
       {!editingLocation ? (

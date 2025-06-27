@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Pause, MessageSquare, Calendar, ThumbsUp } from "lucide-react";
+import { Play, Pause, MessageSquare, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { format, formatDate, parseISO } from "date-fns";
 import { Recording } from "../../store/store";
-import supabase from "../../utils/supabaseClient";
 import Button from "../ui/Button";
+import { useAuth } from "../../store/AuthContext";
+import supabase from "../../utils/supabaseClient";
 
 interface RecordingCardProps {
   recording: Recording;
@@ -18,24 +19,20 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
   displayName,
   feedbackCount,
 }) => {
+  const { user, loading } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
-    const checkOwnership = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user && user.id === recording.user_id) {
-        setIsOwner(true);
-      }
-    };
-
-    checkOwnership();
-  }, [recording.id]);
+    if (loading) return;
+    if (user && user.id === recording.user_id) {
+      setIsOwner(true);
+    } else {
+      setIsOwner(false);
+    }
+  }, [user, loading, recording.user_id]);
 
   useEffect(() => {
     const fetchSignedUrl = async () => {
@@ -55,7 +52,7 @@ const RecordingCard: React.FC<RecordingCardProps> = ({
 
   useEffect(() => {
     if (!audioRef.current) return;
-    // console.log("Recording props:", recording);
+    console.log("Recording props:", recording);
 
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);

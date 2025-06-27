@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import supabase from "../utils/supabaseClient";
+import { useAuth } from "../store/AuthContext";
 import { motion } from "framer-motion";
 import { Visibility, Profile, useStore } from "../store/store";
 import ActivityCalendar from "../components/progress/ActivityCalendar";
@@ -15,40 +15,42 @@ import ChangeEmail from "../components/ui/ProfileSettings/ChangeEmail";
 
 const ProfilePage: React.FC = () => {
   const { recordings, setRecordings } = useStore();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfileAndRecordings = async () => {
-      const data = await fetchingProfile();
+      if (authLoading) {
+        setDataLoading(true);
+        return;
+      }
+      setDataLoading(true);
 
-      const privateRecs = await getRecordings(Visibility.PRIVATE);
-      const publicRecs = await getRecordings(Visibility.PUBLIC);
-      const anonymousRecs = await getRecordings(Visibility.ANONYMOUS);
+      try {
+        if (user && user.id) {
+          const fetchedProfile = await fetchingProfile(user);
+          setProfile(fetchedProfile);
 
-      const allRecs = [...privateRecs, ...publicRecs, ...anonymousRecs];
-
-      setProfile(data);
-      setRecordings(allRecs);
-
-      setLoading(false);
+          const allOwnedRecs = await getRecordings(user);
+          setRecordings(allOwnedRecs);
+        } else {
+          console.log(
+            "ProfilePage: No authenticated user. Cannot fetch profile or recordings."
+          );
+          setProfile(null);
+          setRecordings([]);
+        }
+      } catch (error) {
+        console.error("ProfilePage: Error fetching data:", error);
+        setProfile(null);
+        setRecordings([]);
+      } finally {
+        setDataLoading(false);
+      }
     };
     fetchProfileAndRecordings();
-  }, []);
-
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session) {
-          const updatedProfile = await fetchingProfile();
-          setProfile(updatedProfile);
-        }
-      }
-    );
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+  }, [user, authLoading, setRecordings]);
 
   const calculatingCurrentStreak = (recordings: Recording[]) => {
     if (recordings.length === 0) return 0;
@@ -101,9 +103,13 @@ const ProfilePage: React.FC = () => {
     currentStreak: calculatingCurrentStreak(recordings),
   };
 
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-6">
-      {loading ? (
+      {dataLoading ? (
         <>
           <div className="flex items-center justify-center">
             <ScaleLoader color="#9333ea" height={23} />
@@ -221,7 +227,7 @@ const ProfilePage: React.FC = () => {
                     <span className="font-medium">
                       {stats.currentStreak > 0
                         ? `${stats.currentStreak} days`
-                        : "No active streak"}
+                        : "--"}
                     </span>
                   </div>
                 </div>
