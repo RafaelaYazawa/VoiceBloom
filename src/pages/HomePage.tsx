@@ -62,7 +62,7 @@ const HomePage: React.FC = () => {
         className="absolute top-20 right-4 sm:top-10 sm:right-6 md:top-20 md:right-10 lg:top-20 lg:right-20 "
       >
         <img
-          src="../public/Bolt.png"
+          src="/Bolt.png"
           alt="Powered by Bolt"
           className="size-20 sm:size-14 md:size-20 lg:size-24"
         />
