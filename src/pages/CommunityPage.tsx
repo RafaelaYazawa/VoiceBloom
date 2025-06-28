@@ -183,7 +183,9 @@ const CommunityPage: React.FC = () => {
   };
 
   const publicRecordings = recordings.filter(
-    (r) => r.visibility === "public" || r.visibility === "anonymous"
+    (r) =>
+      r.visibility === Visibility.PUBLIC ||
+      r.visibility === Visibility.ANONYMOUS
   );
 
   return (
@@ -256,15 +258,19 @@ const CommunityPage: React.FC = () => {
                 className="mySwiper"
               >
                 {publicRecordings.map((recording) => {
+                  console.log(
+                    "Recording USERNAME:",
+                    recording.user_id?.username
+                  );
+                  console.log("Recording EMAIL:", recording.user_id?.email);
                   const isSelected = selectedRecording?.id === recording.id;
 
                   const displayName =
                     recording.visibility === Visibility.ANONYMOUS
                       ? "Anonymous"
-                      : recording.username
-                      ? recording.username
+                      : recording.user_id?.username
+                      ? recording.user_id?.username
                       : recording.email || "Unknown User";
-
                   return (
                     <SwiperSlide key={recording.id}>
                       <div
