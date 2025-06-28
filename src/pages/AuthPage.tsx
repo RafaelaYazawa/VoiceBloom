@@ -74,7 +74,7 @@ const AuthPage: React.FC<Props> = ({ onLoginSuccess }) => {
             navigate("/auth");
           } else {
             addToast({
-              title: "Sign up successful, but no user data received.",
+              title: "Sign up successful!",
               description: "Please check your email for a verification link.",
               type: "info",
             });

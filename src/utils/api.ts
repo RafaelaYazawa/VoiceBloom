@@ -37,8 +37,8 @@ export const uploadAndSaveRecording = async (
   const safeUserId = user.id;
   const fileName = `${safeUserId}/${Date.now()}${fileExt}`;
 
-  console.log("Uploading recording for user:", user);
-  console.log("user.id:", user?.id);
+  // console.log("Uploading recording for user:", user);
+  // console.log("user.id:", user?.id);
 
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from("recordings")
