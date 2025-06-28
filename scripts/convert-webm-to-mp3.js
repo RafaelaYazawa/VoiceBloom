@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { execSync } from "child_process";
 import fs from "fs";
+import os from "os";
 import path from "path";
 import dotenv from "dotenv";
 
@@ -23,13 +24,16 @@ export const convertRecording = async (webmPath) => {
       throw new Error(`Error downloading WebM: ${error?.message}`);
     }
 
-    const tempWebm = path.join("/temp", "input.webm");
-    const tempMp3 = path.join("/temp", "output.mp3");
+    const tempDir = os.tmpdir();
+    const tempWebm = path.join(tempDir, "input.webm");
+    const tempMp3 = path.join(tempDir, "output.mp3");
     const buffer = Buffer.from(await data.arrayBuffer());
     fs.writeFileSync(tempWebm, buffer);
 
     console.log("🎵 Converting to MP3 at 192 kbps...");
-    execSync(`ffmpeg -i "${tempWebm}" -codec:a libmp3 -b:a 192k "${tempMp3}"`);
+    execSync(
+      `ffmpeg -i "${tempWebm}" -codec:a libmp3lame -b:a 192k "${tempMp3}"`
+    );
 
     const mp3Buffer = fs.readFileSync(tempMp3);
     const mp3Path = webmPath.replace(".webm", ".mp3");
@@ -57,12 +61,11 @@ export const convertRecording = async (webmPath) => {
   } catch (err) {
     console.error("❌ Conversion failed:", err.message);
   }
-
-  const webmPathArg = process.argv[2];
-  if (!webmPathArg) {
-    console.error("❌ Usage: node scripts/convert-webm-to-mp3.js <webm path>");
-    process.exit(1);
-  }
-
-  convertRecording(webmPathArg);
 };
+const webmPathArg = process.argv[2];
+if (!webmPathArg) {
+  console.error("❌ Usage: node scripts/convert-webm-to-mp3.js <webm path>");
+  process.exit(1);
+}
+
+convertRecording(webmPathArg);
