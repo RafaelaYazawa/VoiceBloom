@@ -120,7 +120,7 @@ const Sidebar: React.FC = () => {
               : "?"}
           </div>
           <div>
-            <p className="font-medium">
+            <p className="font-medium truncate">
               {dataLoading
                 ? "Loading..."
                 : profile?.username || profile?.email || "User"}

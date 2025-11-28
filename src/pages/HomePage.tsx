@@ -84,8 +84,7 @@ const HomePage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto"
         >
-          VoiceBloom helps shy people, language learners, and those with hearing
-          disabilities build speaking confidence through daily practice and
+          VoiceBloom helps shy people, language learners build speaking confidence through daily practice and
           supportive community feedback.
         </motion.p>
 
